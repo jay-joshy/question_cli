@@ -1,0 +1,62 @@
+[
+  {
+    "question": "Infection with which one of the following organisms is the most likely cause of fever, nonbloody diarrhea, and muscle aches in a 45-year-old dairy farmer without lymphadenopathy who takes infliximab for psoriasis?",
+    "options": [
+      "Histoplasma",
+      "Shiga-toxin-producing Escherichia coli",
+      "Listeria monocytogenes",
+      "Epstein-Barr virus",
+      "Streptococcus pneumoniae"
+    ],
+    "answer": "Listeria monocytogenes",
+    "is_higher_order": true
+  },
+  {
+    "question": "A 43-year-old woman reports a 3-month history of rash and difficulty walking. She has a 2-year history of asthma that has worsened during the past 6 months. She is taking a high-dose inhaled glucocorticoid and a long-acting beta agonist but continues to have coughing at night, chest tightness while walking, and only partial relief with the use of a short-acting beta agonist. On examination, there is weakness of ankle dorsiflexion bilaterally, severe on the right and mild on the left. She has scattered palpable purpuric skin lesions on both legs. Her total leukocyte count is 17,000 per mm3 (reference range, 4500-11,000); the leukocyte differential includes 35% eosinophils. Which one of the following tests is most likely to be diagnostic in this case?",
+    "options": [
+      "Pulmonary function tests",
+      "Biopsy of a sural nerve",
+      "Electromyogram and nerve-conduction studies",
+      "High-resolution CT of the chest",
+      "Antinuclear antibody test"
+    ],
+    "answer": "Biopsy of a sural nerve",
+    "is_higher_order": false
+  },
+  {
+    "question": "A previously healthy 25-year-old woman reports frequent infections during the past 3 years, including several sinus infections and two episodes of pneumonia. A purified protein derivative test, sputum testing for acid-fast bacilli, and HIV serology testing are all negative. A chest radiograph is within normal limits. Other laboratory testing reveals a normal leukocyte count, and flow cytometry documents normal B-cell and T-cell counts. Immunoglobulin (Ig) G and A levels are low; IgM and IgE levels are normal. Which one of the following diagnoses is most likely in this case?",
+    "options": [
+      "Common variable immune deficiency",
+      "Alpha 1-antitrypsin deficiency",
+      "Complement factor 2 deficiency",
+      "Cystic fibrosis",
+      "Chronic granulomatous disease"
+    ],
+    "answer": "Common variable immune deficiency",
+    "is_higher_order": true
+  },
+  {
+    "question": "Which one of the following diagnoses most likely explains itching of the mouth and tongue after ingestion of either cantaloupe or watermelon in a patient with a history of hay fever?",
+    "options": [
+      "Pollen-food allergy syndrome",
+      "Pesticide allergy",
+      "Reflux from a pharyngoesophageal diverticulum",
+      "Irritant mucositis",
+      "Cold-induced urticaria"
+    ],
+    "answer": "Pollen-food allergy syndrome",
+    "is_higher_order": false
+  },
+  {
+    "question": "A 32-year-old man with long-standing, persistent asthma reports worsening wheezing, cough, and dyspnea during the past month. He has been using high-dose combination inhaled glucocorticoid-long-acting beta,-agonist treatment and inhaled albuterol every 4 hours. Three weeks ago, he started montelukast and oral prednisone 40 mg daily. Laboratory evaluation reveals an immunoglobulin E level of 2410 1U/mL (reference range, 10-179) and a positive skin test to Aspergillus fumigatus. His leukocyte count before starting treatment with oral glucocorticoids was 9200 per mm3 (reference range, 4500-11,000) with 12% eosinophils (0-8). CT of the chest shows central bronchiectasis. Which one of the following medications is most likely to provide clinical improvement for this patient?",
+    "options": [
+      "Enoxaparin",
+      "Itraconazole",
+      "Theophylline",
+      "Methotrexate",
+      "Ivacaftor"
+    ],
+    "answer": "Itraconazole",
+    "is_higher_order": true
+  }
+]

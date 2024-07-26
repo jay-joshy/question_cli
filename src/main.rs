@@ -1,6 +1,12 @@
 use crossterm::cursor::MoveTo;
 use crossterm::terminal::Clear;
-use crossterm::{execute, terminal::ClearType};
+use crossterm::{
+    execute,
+    style::{Color, ResetColor, SetForegroundColor},
+    terminal::ClearType,
+};
+
+use crossterm::style::{PrintStyledContent, Stylize};
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs;
@@ -18,6 +24,16 @@ type Questions = Vec<Question>;
 
 fn clear_screen() {
     execute!(io::stdout(), Clear(ClearType::All), MoveTo(0, 0)).expect("Failed to clear screen");
+}
+
+fn print_colored(text: &str, color: Color) {
+    execute!(
+        io::stdout(),
+        SetForegroundColor(color),
+        PrintStyledContent(text.with(color)),
+        ResetColor
+    )
+    .expect("Failed to print colored text");
 }
 
 fn main() {
@@ -52,18 +68,25 @@ fn main() {
         clear_screen(); // Clear the terminal screen before showing a new question
 
         let question = &mut questions[current_index];
-        println!("Question {}:\n{}", current_index + 1, question.question);
+        print_colored(
+            &format!("Question {} of {}\n", current_index + 1, len_questions,),
+            Color::Cyan,
+        );
+        println!("{}", question.question);
         for (i, option) in question.options.iter().enumerate() {
             println!("{}. {}", i + 1, option);
         }
         println!("Answer: {}", question.answer);
         if let Some(is_higher_order) = question.is_higher_order {
-            println!("Is Higher Order question: {}", is_higher_order);
+            println!("\nIs Higher Order question: {}", is_higher_order);
         } else {
-            println!("Is Higher Order question: Not set");
+            print_colored(
+                "\nIs Higher Order question: NOT YET CLASSIFIED\n",
+                Color::Red,
+            );
         }
 
-        println!("\n------------------------------\n\nIs this a higher order question? (y/n), (f)orward, (b)ackward, (s)ave, (q)uit\n\n------------------------------");
+        print_colored(&format!("\n------------------------------\n\nIs this a higher order question? (y/n), (f)orward, (b)ackward, (s)ave, (q)uit\n\n------------------------------\n\n"), Color::DarkCyan);
         println!("Higher order question: involves application, analyzing, evaluating.\nLower order question: involves basic understanding and rote memorization.");
 
         let mut input = String::new();

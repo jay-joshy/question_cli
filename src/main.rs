@@ -8,6 +8,7 @@ use crossterm::{
     style::{Color, ResetColor, SetForegroundColor},
     terminal::ClearType,
 };
+use indicatif::{ProgressBar, ProgressStyle};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io;
@@ -95,15 +96,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // QOL vars
     let len_questions: usize = questions.len();
     let mut current_index = 0;
+    let mut num_answered = questions
+        .iter()
+        .filter(|question| question.human_answer.is_some())
+        .count();
+    let mut num_classified = questions
+        .iter()
+        .filter(|question| question.is_higher_order.is_some())
+        .count();
+
+    let p_bar = ProgressBar::new(questions.len() as u64);
+    p_bar.set_message("Question progress");
+    p_bar.set_style(ProgressStyle::with_template("{bar:40.cyan/blue} {msg}")?);
+    p_bar.inc(num_answered as u64);
 
     loop {
         clear_screen(); // Clear the terminal screen before showing a new question
-
+        match mode {
+            Mode::Classify => p_bar.set_position(num_classified as u64),
+            Mode::Answer => p_bar.set_position(num_answered as u64),
+        }
         let question = &mut questions[current_index];
         print_colored(
             &format!("Question {} of {}\n", current_index + 1, len_questions,),
             Color::Cyan,
         );
+
         println!("{}", question.question);
         let letter_array = ["a", "b", "c", "d", "e", "f", "g"];
         for (i, option) in question.options.iter().enumerate() {
@@ -149,11 +167,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     if current_index < len_questions - 1 {
                         current_index += 1
                     };
-                    question.is_higher_order = Some(true)
+                    if question.is_higher_order.is_none() {
+                        num_classified += 1;
+                    };
+                    question.is_higher_order = Some(true);
                 }
                 "n" => {
                     if current_index < len_questions - 1 {
                         current_index += 1
+                    };
+                    if question.is_higher_order.is_none() {
+                        num_classified += 1
                     };
                     question.is_higher_order = Some(false)
                 }
@@ -173,18 +197,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Mode::Answer => match input {
                 "a" | "b" | "c" | "d" | "e" | "f" => {
                     if let Some(human_answer) = get_answer_from_alpha_option(input, question) {
+                        if question.human_answer.is_none() {
+                            num_answered += 1
+                        }
+
                         question.human_answer = Some(human_answer);
                         if current_index < len_questions - 1 {
                             current_index += 1
                         };
                     }
                 }
-                "j" => {
+                "k" => {
                     if current_index < len_questions - 1 {
                         current_index += 1
                     }
                 }
-                "k" => {
+                "j" => {
                     if current_index > 0 {
                         current_index -= 1;
                     }
@@ -198,6 +226,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "q" => break,
             _ => {}
         }
+
+        clear_screen(); // Clear the terminal screen before showing a new question
     }
 
     // Save the modified JSON file when exiting

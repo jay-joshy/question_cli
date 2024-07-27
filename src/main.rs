@@ -1,3 +1,5 @@
+use anyhow::{Context, Result};
+use clap::Parser;
 use crossterm::cursor::MoveTo;
 use crossterm::style::{PrintStyledContent, Stylize};
 use crossterm::terminal::Clear;
@@ -7,7 +9,6 @@ use crossterm::{
     terminal::ClearType,
 };
 use serde::{Deserialize, Serialize};
-use std::env;
 use std::fs;
 use std::io;
 
@@ -21,6 +22,21 @@ struct Question {
 }
 
 type Questions = Vec<Question>;
+
+enum Mode {
+    Classify,
+    Answer,
+}
+
+#[derive(Parser)]
+#[command(version, about)]
+struct Cli {
+    // Either "classify" or "answer"
+    mode: String,
+
+    // PATH to the .json file
+    json_path: std::path::PathBuf,
+}
 
 fn clear_screen() {
     execute!(io::stdout(), Clear(ClearType::All), MoveTo(0, 0)).expect("Failed to clear screen");
@@ -36,9 +52,12 @@ fn print_colored(text: &str, color: Color) {
     .expect("Failed to print colored text");
 }
 
-enum Mode {
-    Classify,
-    Answer,
+fn save_json(json_path: &std::path::PathBuf, questions: &Questions) -> Result<()> {
+    let new_data = serde_json::to_string_pretty(&questions)
+        .with_context(|| format!("Failed to serialize JSON"))?;
+    fs::write(json_path, new_data).with_context(|| format!("Failed to write JSON to file."))?;
+    println!("Data saved.");
+    Ok(())
 }
 
 fn get_answer_from_alpha_option(option: &str, question: &mut Question) -> Option<String> {
@@ -59,38 +78,20 @@ fn get_answer_from_alpha_option(option: &str, question: &mut Question) -> Option
     };
 }
 
-fn main() {
-    // Load and parse the JSON file as a command line arguement
-    let args: Vec<String> = env::args().collect();
-    if args.len() != 3 {
-        eprintln!("Usage: question_cli <mode> <path_to_questions.json>");
-        std::process::exit(1);
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = Cli::parse();
+
+    let mode = match args.mode.as_str() {
+        "classify" => Some(Mode::Classify),
+        "answer" => Some(Mode::Answer),
+        _ => None,
     }
+    .expect("Mode must be either 'classify' or 'answer'");
+    let data = fs::read_to_string(&args.json_path)
+        .with_context(|| format!("could not read file: {}", &args.json_path.display()))?;
+    let mut questions: Questions =
+        serde_json::from_str(&data).with_context(|| format!("JSON not parsable"))?;
 
-    let mode = match args[1].as_str() {
-        "classify" => Mode::Classify,
-        "answer" => Mode::Answer,
-        _ => {
-            println!("Usage: question_cli <mode> <path_to_questions.json>\n<mode> can either be 'classify' or 'answer'");
-            return;
-        }
-    };
-    let file_path = &args[2];
-    let data = match fs::read_to_string(file_path) {
-        Ok(data) => data,
-        Err(error) => {
-            println!("Error message: {}\nUnable to read the provided file path. Please make sure it is correct and the file is accessible.", error);
-            return;
-        }
-    };
-
-    let mut questions: Questions = match serde_json::from_str(&data) {
-        Ok(result) => result,
-        Err(e) => {
-            println!("JSON invalid. Error message:\n{}", e);
-            return;
-        }
-    };
     let len_questions: usize = questions.len();
     let mut current_index = 0;
 
@@ -194,19 +195,14 @@ fn main() {
         }
 
         match input {
-            "s" => {
-                let new_data =
-                    serde_json::to_string_pretty(&questions).expect("Failed to serialize data");
-                fs::write(file_path, new_data).expect("Unable to write file");
-                println!("Data saved.");
-            }
+            "s" => save_json(&args.json_path, &questions)?,
             "q" => break,
             _ => {}
         }
     }
 
     // Save the modified JSON file when exiting
-    let new_data = serde_json::to_string_pretty(&questions).expect("Failed to serialize data");
-    fs::write(file_path, new_data).expect("Unable to write file");
-    println!("Data saved.");
+    save_json(&args.json_path, &questions)?;
+
+    Ok(())
 }

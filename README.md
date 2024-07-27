@@ -1,10 +1,10 @@
 # README
 
 ## Purpose
-Quick command line tool to both classify and/or answer allergy/immunology questions.
+Quick internal command line tool to both classify and/or answer questions.
 
 ## Requirements
-You required a .json file with questions formatted as such:
+You require a .json file with questions formatted as such:
 ```json
 [
   {
@@ -34,27 +34,11 @@ You required a .json file with questions formatted as such:
 
 ## How to use
 
-Open your command line. For Windows, this is "Command Prompt" or "PowerShell" app; for MacOS/Linux it is the "Terminal".
-After question_cli, add either "classify" or "answer", followed by the PATH to the .json:
+Open your command line and run the tool using the format below. For Windows, this is the "Command Prompt" or "PowerShell" app; for MacOS/Linux it is the "Terminal".
 ```zsh
-question_cli <classify or answer> <insert_path_to_json>
+question_cli <classify or answer> <path_to_json>
 ```
-
 Example:
 ```zsh
 question_cli answer /home/josh/Documents/question_cli/questions.json
 ```
-## Navigation
-You should be able to navigate through the questions and classify each question. You are able to save your progress whenever you want.
-
-y = classify as higher order;
-
-n = classify as lower order;
-
-f = move forward to the next question;
-
-b = move backward to the previous question;
-
-s = save the .json file with your edits;
-
-q = quit and save the .json file with your edits;

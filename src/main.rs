@@ -79,19 +79,20 @@ fn get_answer_from_alpha_option(option: &str, question: &mut Question) -> Option
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // parse cli arguements and load mode and .json
     let args = Cli::parse();
 
     let mode = match args.mode.as_str() {
-        "classify" => Some(Mode::Classify),
-        "answer" => Some(Mode::Answer),
-        _ => None,
-    }
-    .expect("Mode must be either 'classify' or 'answer'");
+        "classify" => Ok(Mode::Classify),
+        "answer" => Ok(Mode::Answer),
+        _ => Err("Mode must be either 'classify' or 'answer'"),
+    }?;
     let data = fs::read_to_string(&args.json_path)
         .with_context(|| format!("could not read file: {}", &args.json_path.display()))?;
     let mut questions: Questions =
         serde_json::from_str(&data).with_context(|| format!("JSON not parsable"))?;
 
+    // QOL vars
     let len_questions: usize = questions.len();
     let mut current_index = 0;
 
@@ -133,14 +134,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     print_colored("\nNO ANSWER SELECTED YET.\n", Color::Red);
                 };
 
-                print_colored(&format!("\n---------------------------------\nEnter your answer (a, b, c, d, etc.).\nTo navigate: (q)uit, (s)ave, (<) - previous question, (>) - next question.\n"), Color::Cyan);
+                print_colored(&format!("\n---------------------------------\nEnter your answer (a, b, c, d, etc.).\nTo navigate: (q)uit, (s)ave, (j) - previous question, (k) - next question.\n"), Color::Cyan);
             }
         }
 
         let mut input = String::new();
-        io::stdin()
-            .read_line(&mut input)
-            .expect("Failed to read line");
+        io::stdin().read_line(&mut input)?;
         let input = input.trim();
 
         // input logic
@@ -180,12 +179,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         };
                     }
                 }
-                ">" => {
+                "j" => {
                     if current_index < len_questions - 1 {
                         current_index += 1
                     }
                 }
-                "<" => {
+                "k" => {
                     if current_index > 0 {
                         current_index -= 1;
                     }

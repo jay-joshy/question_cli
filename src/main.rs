@@ -43,14 +43,14 @@ fn clear_screen() {
     execute!(io::stdout(), Clear(ClearType::All), MoveTo(0, 0)).expect("Failed to clear screen");
 }
 
-fn print_colored(text: &str, color: Color) {
+fn print_colored(text: &str, color: Color) -> Result<()> {
     execute!(
         io::stdout(),
         SetForegroundColor(color),
         PrintStyledContent(text.with(color)),
         ResetColor
-    )
-    .expect("Failed to print colored text");
+    )?;
+    Ok(())
 }
 
 fn save_json(json_path: &std::path::PathBuf, questions: &Questions) -> Result<()> {
@@ -107,7 +107,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let p_bar = ProgressBar::new(questions.len() as u64);
     p_bar.set_message("Question progress");
-    p_bar.set_style(ProgressStyle::with_template("{bar:40.cyan/blue} {msg}")?);
+    p_bar.set_style(ProgressStyle::with_template("{wide_bar} {msg}")?);
     p_bar.inc(num_answered as u64);
 
     loop {
@@ -118,11 +118,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         let question = &mut questions[current_index];
         print_colored(
-            &format!("Question {} of {}\n", current_index + 1, len_questions,),
+            &format!("\nQuestion {} of {}\n", current_index + 1, len_questions,),
             Color::Cyan,
-        );
+        )?;
 
-        println!("{}", question.question);
+        println!("\n{}", question.question);
         let letter_array = ["a", "b", "c", "d", "e", "f", "g"];
         for (i, option) in question.options.iter().enumerate() {
             println!("{}. {}", letter_array[i], option);
@@ -137,9 +137,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     print_colored(
                         "\nIs Higher Order question: NOT YET CLASSIFIED\n",
                         Color::Red,
-                    );
+                    )?;
                 }
-                print_colored(&format!("\n------------------------------\n\nIs this a higher order question? (y/n), (f)orward, (b)ackward, (s)ave, (q)uit\n\n------------------------------\n\n"), Color::DarkCyan);
+                print_colored(&format!("\n------------------------------\n\nIs this a higher order question? (y/n), (f)orward, (b)ackward, (s)ave, (q)uit\n\n------------------------------\n\n"), Color::DarkCyan)?;
                 println!("Higher order question: involves application, analyzing, evaluating.\nLower order question: involves basic understanding and rote memorization.");
             }
             Mode::Answer => {
@@ -147,15 +147,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     print_colored(
                         &format!("\nCurrent selected answer: {}", human_answer),
                         Color::Blue,
-                    );
+                    )?;
                 } else {
-                    print_colored("\nNO ANSWER SELECTED YET.\n", Color::Red);
+                    print_colored("\nNO ANSWER SELECTED YET.\n", Color::Red)?;
                 };
 
-                print_colored(&format!("\n---------------------------------\nEnter your answer (a, b, c, d, etc.).\nTo navigate: (q)uit, (s)ave, (j) - previous question, (k) - next question.\n"), Color::Cyan);
+                print_colored(&format!("\n---------------------------------\nEnter your answer (a, b, c, d, etc.).\nTo navigate: (q)uit, (s)ave, (j) - previous question, (k) - next question.\n"), Color::Cyan)?;
             }
         }
 
+        // get user input
         let mut input = String::new();
         io::stdin().read_line(&mut input)?;
         let input = input.trim();

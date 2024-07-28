@@ -42,3 +42,7 @@ Example:
 ```zsh
 question_cli answer /home/josh/Documents/question_cli/questions.json
 ```
+
+Once running the tool, instructions are provided on how to navigate through each question.
+
+Enjoy!

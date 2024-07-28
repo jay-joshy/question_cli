@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use clap::Parser;
+use colored::Colorize;
 use crossterm::cursor::MoveTo;
 use crossterm::style::Stylize;
 use crossterm::terminal::Clear;
@@ -104,13 +105,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let question = &mut questions[current_index];
         println!(
             "{}",
-            format!("Question {} of {}\n", current_index + 1, len_questions).cyan()
+            format!("Question {} of {}", current_index + 1, len_questions).cyan()
         );
 
         println!("\n{}", question.question);
         let letter_array = ["a", "b", "c", "d", "e", "f", "g"];
         for (i, option) in question.options.iter().enumerate() {
-            println!("{}. {}", letter_array[i], option);
+            println!(
+                "{} - {}",
+                letter_array[i].to_string().yellow(),
+                option.to_string().yellow()
+            );
         }
 
         match mode {
@@ -118,13 +123,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("Answer: {}", question.answer);
                 if let Some(is_higher_order) = question.is_higher_order {
                     println!(
-                        "\nIs Higher Order question: {}",
-                        format!("{}", is_higher_order).blue()
+                        "\nIs a Higher Order question: {}",
+                        is_higher_order.to_string().blue()
                     );
                 } else {
                     println!(
                         "{}",
-                        "\nIs Higher Order question: NOT YET CLASSIFIED"
+                        "\nIs a Higher Order question: NOT YET CLASSIFIED"
                             .to_string()
                             .red()
                     );

@@ -12,6 +12,7 @@ use ratatui::{
 };
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::process;
 
 mod errors;
 mod tui;
@@ -114,10 +115,7 @@ impl App {
                         " No".into(),
                         "<n>".cyan().bold(),
                     ],
-                    Mode::Answer => vec![
-                        " Enter answer letter".into(),
-                        "<a, b, c ... etc.>".cyan().bold(),
-                    ],
+                    Mode::Answer => vec![" Enter answer ".into(), "<1, 2, 3, 4, 5>".cyan().bold()],
                 }
             });
             Title::from(Line::from(i_vec))
@@ -349,7 +347,8 @@ impl App {
 }
 
 fn save_json(json_path: &std::path::PathBuf, questions: &Questions) -> Result<()> {
-    let new_data = serde_json::to_string_pretty(&questions).wrap_err("Failed to serialize JSON")?;
+    let new_data = serde_json::to_string_pretty(&questions)
+        .wrap_err("Failed to serialize JSON while saving.")?;
     fs::write(json_path, new_data).wrap_err("Failed to write JSON to file.")?;
     Ok(())
 }
@@ -391,15 +390,15 @@ fn main() -> Result<()> {
     let args = Cli::parse();
 
     let mode = match args.mode.as_str() {
-        "classify" => Ok(Mode::Classify),
-        "answer" => Ok(Mode::Answer),
-        _ => Err(()),
+        "classify" => Mode::Classify,
+        "answer" => Mode::Answer,
+        _ => {
+            eprintln!("Mode must be either 'classify' or 'answer'");
+            process::exit(1)
+        }
     };
-    let mode = mode.expect("Mode must be either 'classify' or 'answer'");
-    let data = fs::read_to_string(&args.json_path).wrap_err(format!(
-        "could not read file: {}",
-        &args.json_path.display()
-    ))?;
+    let data = fs::read_to_string(&args.json_path)
+        .with_context(|| format!("could not read file: {}", &args.json_path.display()))?;
     let questions: Questions = serde_json::from_str(&data).wrap_err("JSON not parsable")?;
     let num_answered: usize = get_num_answered(&mode, &questions);
 

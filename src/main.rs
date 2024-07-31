@@ -36,6 +36,7 @@ enum Mode {
     Answer,
 }
 
+// Command line arguements required
 #[derive(Parser)]
 #[command(version, about)]
 struct Cli {
@@ -46,6 +47,7 @@ struct Cli {
     json_path: std::path::PathBuf,
 }
 
+// For state control in App
 #[derive(Debug, Default)]
 pub struct App {
     json_path: std::path::PathBuf,
@@ -55,6 +57,25 @@ pub struct App {
     message: String,
     exit: bool,
     num_answered: usize,
+}
+
+// helps with UI
+enum QStatus {
+    MissingClassification(Span<'static>),
+    MissingAnswer(Span<'static>),
+    Classification(Span<'static>),
+    Answer(Span<'static>),
+}
+impl QStatus {
+    // Method to extract the inner Span<'static>
+    fn get_span(&self) -> &Span<'static> {
+        match self {
+            QStatus::MissingClassification(span)
+            | QStatus::MissingAnswer(span)
+            | QStatus::Classification(span)
+            | QStatus::Answer(span) => span,
+        }
+    }
 }
 
 impl App {
@@ -86,6 +107,7 @@ impl App {
         Ok(())
     }
 
+    // UI layout, Called by run().
     fn ui(&self, frame: &mut Frame) {
         let current_q = &self.questions[self.question_index];
 
@@ -103,10 +125,10 @@ impl App {
             i_vec.splice(0..0, {
                 match self.mode {
                     Mode::Classify => vec![
-                        " Yes".into(),
-                        "<y>".cyan().bold(),
-                        " No".into(),
-                        "<n>".cyan().bold(),
+                        " True".into(),
+                        "<t>".cyan().bold(),
+                        " False".into(),
+                        "<f>".cyan().bold(),
                     ],
                     Mode::Answer => vec![" Enter answer ".into(), "<1, 2, 3, 4, 5>".cyan().bold()],
                 }
@@ -122,6 +144,7 @@ impl App {
             " ".into(),
         ]));
 
+        // For paragraphs, to have separate lines you cannot use "\n". You must construct out of separate Line structs.
         let mut q_text: Vec<Line<'_>> = vec![Line::from(current_q.question.clone())];
         q_text.push(Line::from(""));
         q_text.extend(
@@ -136,28 +159,34 @@ impl App {
                 .collect::<Vec<_>>(),
         );
         // is the question answered or has it already been classified?
-        let q_status = Line::from(match self.mode {
+        let q_status = match self.mode {
             Mode::Classify => {
                 if let Some(is_higher_order) = current_q.is_higher_order {
-                    format!("Current classification: {}", is_higher_order).blue()
+                    QStatus::Classification(
+                        format!(
+                            "Current classification, is higher order: {}",
+                            is_higher_order
+                        )
+                        .blue(),
+                    )
                 } else {
-                    format!("MISSING CLASSIFICATION").red().bold()
+                    QStatus::MissingClassification(format!("MISSING CLASSIFICATION").red().bold())
                 }
             }
             Mode::Answer => {
                 if let Some(answer) = &current_q.human_answer {
-                    format!("Current answer: {}", answer).blue()
+                    QStatus::Answer(format!("Current answer: {}", answer).blue())
                 } else {
-                    format!("MISSING ANSWER").red().bold()
+                    QStatus::MissingAnswer(format!("MISSING ANSWER").red().bold())
                 }
             }
-        });
+        };
         q_text.push(Line::from(""));
-        q_text.push(q_status);
+        q_text.push(Line::from(q_status.get_span().clone()));
 
         let instructions = Text::from(match self.mode {
             Mode::Classify => vec![
-                Line::from("Is this a higher order question?".bold()),
+                Line::from("Is this a higher order question? True <t> or False <f>?".bold()),
                 Line::from(""),
                 Line::from("Higher order question: involves application, analyzing, evaluating."),
                 Line::from(
@@ -171,6 +200,7 @@ impl App {
             ],
         });
 
+        // main layout
         let outer_layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints(vec![
@@ -186,24 +216,35 @@ impl App {
             .split(outer_layout[1]);
 
         // add txt to layout
+
+        // Add save message to top right
         frame.render_widget(
             Paragraph::default().alignment(Alignment::Center).block(
                 Block::new().title(Title::from(self.message.clone()).alignment(Alignment::Right)),
             ),
             outer_layout[0],
         );
+        // add question text and current question status
         frame.render_widget(
             Paragraph::new(Text::from(q_text))
                 .wrap(ratatui::widgets::Wrap { trim: true })
                 .block(
                     Block::new()
                         .borders(Borders::TOP | Borders::RIGHT)
-                        .title(question_index_text)
-                        .title_alignment(Alignment::Left)
+                        .title(question_index_text.alignment(Alignment::Left))
+                        .title(
+                            Title::from(match q_status {
+                                QStatus::MissingClassification(span)
+                                | QStatus::MissingAnswer(span) => Line::from(span),
+                                _ => Line::from(""),
+                            })
+                            .alignment(Alignment::Center),
+                        )
                         .padding(ratatui::widgets::Padding::new(1, 1, 1, 1)),
                 ),
             inner_layout[0],
         );
+        // add instructions
         frame.render_widget(
             Paragraph::new(instructions)
                 .block(
@@ -214,6 +255,7 @@ impl App {
                 .wrap(ratatui::widgets::Wrap { trim: true }),
             inner_layout[1],
         );
+        // Add controls + progress bar
         frame.render_widget(
             LineGauge::default()
                 .block(
@@ -249,8 +291,9 @@ impl App {
     }
 
     fn handle_key_event(&mut self, key_event: KeyEvent) -> Result<()> {
+        // common controls
         match key_event.code {
-            KeyCode::Char('q') => self.exit()?,
+            KeyCode::Char('q') => self.exit()?, // also calls self.save() on exit
             KeyCode::Char('s') => self.save()?,
             KeyCode::Left => self
                 .decrement_index()
@@ -260,9 +303,11 @@ impl App {
                 .wrap_err("overflow addition error somehow")?,
             _ => {}
         }
+        // mode specific controls
         if self.mode == Mode::Classify {
             match key_event.code {
-                KeyCode::Char('y') => {
+                KeyCode::Char('t') => {
+                    // only increment num_answered if not prev answered.
                     if self.questions[self.question_index]
                         .is_higher_order
                         .is_none()
@@ -271,7 +316,8 @@ impl App {
                     }
                     self.questions[self.question_index].is_higher_order = Some(true)
                 }
-                KeyCode::Char('n') => {
+                KeyCode::Char('f') => {
+                    // only increment num_answered if not prev answered.
                     if self.questions[self.question_index]
                         .is_higher_order
                         .is_none()
@@ -284,7 +330,6 @@ impl App {
             }
         }
         if self.mode == Mode::Answer {
-            // TODO
             match key_event.code {
                 KeyCode::Char(value) => match value {
                     '1' | '2' | '3' | '4' | '5' | '6' => {
@@ -312,6 +357,7 @@ impl App {
         Ok(())
     }
 
+    // saves time of save in app.message for state
     fn save(&mut self) -> Result<()> {
         // Get the current UTC time
         let now = Utc::now();
@@ -321,15 +367,17 @@ impl App {
         Ok(())
     }
 
+    // loops if goes below the first question
     fn decrement_index(&mut self) -> Result<()> {
-        self.question_index = self.question_index.saturating_sub(1);
+        self.question_index = match self.question_index.checked_sub(1) {
+            Some(new_index) => new_index,
+            None => self.questions.len() - 1,
+        };
         Ok(())
     }
-
+    // loops if goes above the last question
     fn increment_index(&mut self) -> Result<()> {
-        if self.question_index < self.questions.len() - 1 {
-            self.question_index += 1;
-        };
+        self.question_index = (self.question_index + 1) % self.questions.len();
         Ok(())
     }
 

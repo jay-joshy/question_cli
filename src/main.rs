@@ -87,14 +87,6 @@ impl App {
 
     fn ui(&self, frame: &mut Frame) {
         let current_q = &self.questions[self.question_index];
-        let title = format!(
-            "Question {}",
-            match self.mode {
-                Mode::Classify => "Classifier",
-                Mode::Answer => "Answerer",
-            }
-        )
-        .bold();
 
         let controls = {
             let mut i_vec = vec![
@@ -189,14 +181,14 @@ impl App {
         // for question and instructions
         let inner_layout = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints(vec![Constraint::Percentage(50), Constraint::Percentage(50)])
+            .constraints(vec![Constraint::Percentage(60), Constraint::Percentage(40)])
             .split(outer_layout[1]);
 
         // add txt to layout
         frame.render_widget(
-            Paragraph::new(title)
-                .alignment(Alignment::Center)
-                .block(Block::new()),
+            Paragraph::default().alignment(Alignment::Center).block(
+                Block::new().title(Title::from(self.message.clone()).alignment(Alignment::Right)),
+            ),
             outer_layout[0],
         );
         frame.render_widget(
@@ -226,7 +218,7 @@ impl App {
                 .block(
                     Block::default()
                         .title(controls.alignment(Alignment::Center))
-                        .title(Title::from(self.message.clone()).alignment(Alignment::Right)),
+                        .borders(Borders::TOP),
                 )
                 .ratio(self.num_answered as f64 / self.questions.len() as f64)
                 .filled_style(

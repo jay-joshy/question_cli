@@ -1,3 +1,4 @@
+#![warn(unused_extern_crates)]
 use chrono::prelude::*;
 use clap::Parser;
 use color_eyre::{eyre::WrapErr, Result};

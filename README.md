@@ -44,5 +44,7 @@ question_cli answer /home/josh/Documents/question_cli/questions.json
 ```
 
 Once running the tool, instructions are provided on how to navigate through each question.
+In brief, type <y> or <n> to classify questions as higher or lower order. If answering, simply type the option #.
+Navigate through questions with your arrow keys.
 
 Enjoy!

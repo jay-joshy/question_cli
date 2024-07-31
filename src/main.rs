@@ -231,13 +231,13 @@ impl App {
                 .ratio(self.num_answered as f64 / self.questions.len() as f64)
                 .filled_style(
                     Style::default()
-                        .fg(Color::White)
+                        .fg(Color::LightCyan)
                         .bg(Color::Black)
                         .add_modifier(Modifier::BOLD),
                 )
                 .label(format!(
                     "Question progress: {}%",
-                    self.num_answered as f64 * 100 as f64 / self.questions.len() as f64
+                    (self.num_answered as f64 * 100 as f64 / self.questions.len() as f64).round()
                 )),
             outer_layout[2],
         );

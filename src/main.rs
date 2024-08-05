@@ -2,6 +2,7 @@
 use chrono::prelude::*;
 use clap::Parser;
 use color_eyre::{eyre::WrapErr, Result};
+use log::{info, warn};
 use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
     layout::Alignment,
@@ -147,6 +148,7 @@ impl App {
         // For paragraphs, to have separate lines you cannot use "\n". You must construct out of separate Line structs.
         let mut q_text: Vec<Line<'_>> = vec![Line::from(current_q.question.clone())];
         q_text.push(Line::from(""));
+        let human_answer = current_q.human_answer.clone().unwrap_or("".to_string());
         q_text.extend(
             current_q
                 .options
@@ -154,7 +156,21 @@ impl App {
                 .enumerate()
                 .map(|(i, text)| {
                     let letter_array = ["1", "2", "3", "4", "5", "6", "7"];
-                    Line::from(format!("{}\n", letter_array[i].to_string() + " - " + text).yellow())
+                    info!("text {}, human {}", text, human_answer);
+                    if text == &human_answer && self.mode == Mode::Answer {
+                        return Line::from(
+                            format!(
+                                "{}\n",
+                                letter_array[i].to_string() + " - " + human_answer.as_str()
+                            )
+                            .green()
+                            .underlined(),
+                        );
+                    } else {
+                        return Line::from(
+                            format!("{}\n", letter_array[i].to_string() + " - " + text).yellow(),
+                        );
+                    }
                 })
                 .collect::<Vec<_>>(),
         );
@@ -426,6 +442,7 @@ fn get_num_answered(mode: &Mode, questions: &Questions) -> usize {
 }
 
 fn main() -> Result<()> {
+    env_logger::init();
     errors::install_hooks()?;
     // parse cli arguements and load mode and .json
     let args = Cli::parse();

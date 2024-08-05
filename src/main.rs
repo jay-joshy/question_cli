@@ -2,7 +2,6 @@
 use chrono::prelude::*;
 use clap::Parser;
 use color_eyre::{eyre::WrapErr, Result};
-use log::{info, warn};
 use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
     layout::Alignment,
@@ -156,7 +155,6 @@ impl App {
                 .enumerate()
                 .map(|(i, text)| {
                     let letter_array = ["1", "2", "3", "4", "5", "6", "7"];
-                    info!("text {}, human {}", text, human_answer);
                     if text == &human_answer && self.mode == Mode::Answer {
                         return Line::from(
                             format!(
@@ -164,6 +162,7 @@ impl App {
                                 letter_array[i].to_string() + " - " + human_answer.as_str()
                             )
                             .green()
+                            .bold()
                             .underlined(),
                         );
                     } else {
@@ -190,8 +189,8 @@ impl App {
                 }
             }
             Mode::Answer => {
-                if let Some(answer) = &current_q.human_answer {
-                    QStatus::Answer(format!("Current answer: {}", answer).blue())
+                if let Some(_answer) = &current_q.human_answer {
+                    QStatus::Answer("".blue())
                 } else {
                     QStatus::MissingAnswer(format!("MISSING ANSWER").red().bold())
                 }
@@ -442,7 +441,6 @@ fn get_num_answered(mode: &Mode, questions: &Questions) -> usize {
 }
 
 fn main() -> Result<()> {
-    env_logger::init();
     errors::install_hooks()?;
     // parse cli arguements and load mode and .json
     let args = Cli::parse();

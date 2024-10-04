@@ -18,17 +18,19 @@ use std::process;
 mod errors;
 mod tui;
 
+// Questions to be extracted from .json file
 #[derive(Serialize, Deserialize, Debug)]
 struct Question {
     question: String,
     options: Vec<String>,
-    answer: String,
-    is_higher_order: Option<bool>,
-    human_answer: Option<String>,
+    answer: String,                // should be verbatim one of the options in options
+    is_higher_order: Option<bool>, // not always in .json file
+    human_answer: Option<String>,  // not always in .json file
 }
 
 type Questions = Vec<Question>;
 
+// Cli app can either classify or answer the questions from the .json
 #[derive(Debug, Default, PartialEq)]
 enum Mode {
     Classify,
@@ -59,13 +61,14 @@ pub struct App {
     num_answered: usize,
 }
 
-// helps with UI
+// Question state options
 enum QStatus {
     MissingClassification(Span<'static>),
     MissingAnswer(Span<'static>),
     Classification(Span<'static>),
     Answer(Span<'static>),
 }
+
 impl QStatus {
     // Method to extract the inner Span<'static>
     fn get_span(&self) -> &Span<'static> {
@@ -98,6 +101,7 @@ impl App {
             num_answered,
         }
     }
+
     /// runs the application's main loop until the user quits
     pub fn run(&mut self, terminal: &mut tui::Tui) -> Result<()> {
         while !self.exit {
@@ -109,6 +113,8 @@ impl App {
 
     // UI layout, Called by run().
     fn ui(&self, frame: &mut Frame) {
+        // Get texts
+
         let current_q = &self.questions[self.question_index];
 
         let controls = {
@@ -122,6 +128,8 @@ impl App {
                 " Quit ".into(),
                 "<q> ".red().bold(),
             ];
+
+            // specific controls based on mode
             i_vec.splice(0..0, {
                 match self.mode {
                     Mode::Classify => vec![
@@ -146,7 +154,7 @@ impl App {
 
         // For paragraphs, to have separate lines you cannot use "\n". You must construct out of separate Line structs.
         let mut q_text: Vec<Line<'_>> = vec![Line::from(current_q.question.clone())];
-        q_text.push(Line::from(""));
+        q_text.push(Line::from("")); // this is \n
         let human_answer = current_q.human_answer.clone().unwrap_or("".to_string());
         q_text.extend(
             current_q
@@ -156,24 +164,24 @@ impl App {
                 .map(|(i, text)| {
                     let letter_array = ["1", "2", "3", "4", "5", "6", "7"];
                     if text == &human_answer && self.mode == Mode::Answer {
-                        return Line::from(
-                            format!(
-                                "{}\n",
-                                letter_array[i].to_string() + " - " + human_answer.as_str()
-                            )
-                            .green()
-                            .bold()
-                            .underlined(),
-                        );
+                        Line::from(
+                            format!("{}\n", letter_array[i].to_string() + " - " + text)
+                                .green()
+                                .bold()
+                                .underlined(),
+                        )
                     } else {
-                        return Line::from(
+                        Line::from(
                             format!("{}\n", letter_array[i].to_string() + " - " + text).yellow(),
-                        );
+                        )
                     }
                 })
-                .collect::<Vec<_>>(),
+                .collect::<Vec<_>>(), // have to collect everything of any type apparently
         );
+
         // is the question answered or has it already been classified?
+        // need to display a big MESSAGE to user if it still needs an action
+        // will append the message to the question text box
         let q_status = match self.mode {
             Mode::Classify => {
                 if let Some(is_higher_order) = current_q.is_higher_order {
@@ -185,20 +193,23 @@ impl App {
                         .blue(),
                     )
                 } else {
-                    QStatus::MissingClassification(format!("MISSING CLASSIFICATION").red().bold())
+                    QStatus::MissingClassification(
+                        "MISSING CLASSIFICATION".to_string().red().bold(),
+                    )
                 }
             }
             Mode::Answer => {
                 if let Some(_answer) = &current_q.human_answer {
                     QStatus::Answer("".blue())
                 } else {
-                    QStatus::MissingAnswer(format!("MISSING ANSWER").red().bold())
+                    QStatus::MissingAnswer("MISSING ANSWER".to_string().red().bold())
                 }
             }
         };
         q_text.push(Line::from(""));
         q_text.push(Line::from(q_status.get_span().clone()));
 
+        // for the right box of the screen, depends on mode
         let instructions = Text::from(match self.mode {
             Mode::Classify => vec![
                 Line::from("Is this a higher order question? True <t> or False <f>?".bold()),
@@ -215,7 +226,7 @@ impl App {
             ],
         });
 
-        // main layout
+        // main layout setup
         let outer_layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints(vec![
@@ -233,20 +244,23 @@ impl App {
         // add txt to layout
 
         // Add save message to top right
+        // this will run whenever the progress is saved and display the time and confirmation of saving
         frame.render_widget(
             Paragraph::default().alignment(Alignment::Center).block(
                 Block::new().title(Title::from(self.message.clone()).alignment(Alignment::Right)),
             ),
             outer_layout[0],
         );
+
         // add question text and current question status
+        // goes in the left middle box
         frame.render_widget(
             Paragraph::new(Text::from(q_text))
                 .wrap(ratatui::widgets::Wrap { trim: true })
                 .block(
                     Block::new()
-                        .borders(Borders::TOP | Borders::RIGHT)
-                        .title(question_index_text.alignment(Alignment::Left))
+                        .borders(Borders::TOP | Borders::RIGHT) // add borders for style
+                        .title(question_index_text.alignment(Alignment::Left)) // add question index in top left border
                         .title(
                             Title::from(match q_status {
                                 QStatus::MissingClassification(span)
@@ -254,7 +268,7 @@ impl App {
                                 _ => Line::from(""),
                             })
                             .alignment(Alignment::Center),
-                        )
+                        ) // add ACTION call to user in top middle border PRN
                         .padding(ratatui::widgets::Padding::new(1, 1, 1, 1)),
                 ),
             inner_layout[0],
@@ -271,6 +285,7 @@ impl App {
             inner_layout[1],
         );
         // Add controls + progress bar
+        // progress relates to number of questions left to answer/classify
         frame.render_widget(
             LineGauge::default()
                 .block(
@@ -287,7 +302,7 @@ impl App {
                 )
                 .label(format!(
                     "Question progress: {}%",
-                    (self.num_answered as f64 * 100 as f64 / self.questions.len() as f64).round()
+                    (self.num_answered as f64 * 100_f64 / self.questions.len() as f64).round()
                 )),
             outer_layout[2],
         );
@@ -305,6 +320,7 @@ impl App {
         }
     }
 
+    // handle key presses in the temrinal
     fn handle_key_event(&mut self, key_event: KeyEvent) -> Result<()> {
         // common controls
         match key_event.code {
@@ -321,6 +337,7 @@ impl App {
         // mode specific controls
         if self.mode == Mode::Classify {
             match key_event.code {
+                // increment progress bar
                 KeyCode::Char('t') => {
                     // only increment num_answered if not prev answered.
                     if self.questions[self.question_index]
@@ -348,6 +365,7 @@ impl App {
             match key_event.code {
                 KeyCode::Char(value) => match value {
                     '1' | '2' | '3' | '4' | '5' | '6' => {
+                        // hacky way to do this...
                         if let Some(human_answer) = get_answer_from_alphanum_option(
                             &value.to_string(),
                             &self.questions[self.question_index],
@@ -402,6 +420,7 @@ impl App {
     }
 }
 
+// save .json file to specified path
 fn save_json(json_path: &std::path::PathBuf, questions: &Questions) -> Result<()> {
     let new_data = serde_json::to_string_pretty(&questions)
         .wrap_err("Failed to serialize JSON while saving.")?;

@@ -362,10 +362,10 @@ impl App {
             }
         }
         if self.mode == Mode::Answer {
-            match key_event.code {
-                KeyCode::Char(value) => match value {
+            if let KeyCode::Char(value) = key_event.code {
+                match value {
                     '1' | '2' | '3' | '4' | '5' | '6' => {
-                        // hacky way to do this...
+                        // hacky wa to do this...
                         if let Some(human_answer) = get_answer_from_alphanum_option(
                             &value.to_string(),
                             &self.questions[self.question_index],
@@ -377,8 +377,7 @@ impl App {
                         }
                     }
                     _ => {}
-                },
-                _ => {}
+                }
             }
         }
         Ok(())
@@ -420,7 +419,7 @@ impl App {
     }
 }
 
-// save .json file to specified path
+/// save .json file to a specified path
 fn save_json(json_path: &std::path::PathBuf, questions: &Questions) -> Result<()> {
     let new_data = serde_json::to_string_pretty(&questions)
         .wrap_err("Failed to serialize JSON while saving.")?;

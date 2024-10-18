@@ -176,7 +176,7 @@ impl App {
                         )
                     }
                 })
-                .collect::<Vec<_>>(), // have to collect everything of any type apparently
+                .collect::<Vec<Line>>(), // have to collect everything of any type apparently
         );
 
         // is the question answered or has it already been classified?
